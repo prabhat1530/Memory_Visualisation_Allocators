@@ -153,6 +153,11 @@ body {
     color: white;
 }
 
+.btn-success {
+    background-color: var(--success-green);
+    color: white;
+}
+
 /* Map Legend */
 .legend-panel {
     background-color: #0F131A;
@@ -302,6 +307,28 @@ body {
 
 .block-2d.allocated:hover {
     background-color: #2563EB;
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+/* Deallocating Animation */
+.block-2d.deallocating {
+    animation: deallocate 0.4s ease-out;
+}
+
+@keyframes deallocate {
+    0% {
+        background-color: var(--primary-blue);
+        transform: scale(1);
+    }
+    50% {
+        background-color: var(--warning-orange);
+        transform: scale(0.95);
+    }
+    100% {
+        background-color: var(--success-green);
+        transform: scale(1);
+    }
 }
 
 /* Free Block Style - Minimal */
@@ -376,6 +403,37 @@ body {
 
 .queue-block.failed {
     background-color: var(--danger-red);
+}
+
+.queue-block.allocated-process {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    animation: pulse-running 2s ease-in-out infinite;
+}
+
+.queue-block.terminated-process {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 5px rgba(100, 116, 139, 0.3);
+}
+
+@keyframes pulse-running {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(59, 130, 246, 0.8);
+    }
+}
+
+@keyframes pulse-failed {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        opacity: 0.8;
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
+        opacity: 1;
+    }
 }
 
 /* Monitor Section */
