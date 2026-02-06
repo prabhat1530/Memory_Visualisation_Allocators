@@ -50,6 +50,7 @@ body {
 /* Sidebar */
 .sidebar {
     width: 320px;
+    max-height: 100vh;
     background-color: var(--bg-panel);
     padding: 24px;
     display: flex;
@@ -57,6 +58,7 @@ body {
     border-right: 1px solid var(--border-color);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
     z-index: 10;
+    overflow-y: auto;
 }
 
 .sidebar-header {
