@@ -12,6 +12,8 @@
 
     --primary-blue: #3B82F6;
     --accent-purple: #8B5CF6;
+    --accent-pink: #EC4899;
+    /* Added missing variable */
     --success-green: #10B981;
     --warning-orange: #F59E0B;
     --danger-red: #EF4444;
@@ -344,12 +346,12 @@ body {
 
 /* Flat Queue Item */
 .queue-block {
-    width: 80px;
-    height: 80px;
-    background-color: var(--primary-blue);
-    /* Matching Allocated Color */
-    border-radius: 4px;
-    /* Slightly squarer */
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, #8B5CF6, #4F46E5);
+    /* Gradient */
+    border-radius: 12px;
+    /* Rounded */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -357,8 +359,17 @@ body {
     color: white;
     font-family: 'JetBrains Mono';
     font-weight: 700;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    /* Added depth */
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    /* Glow */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 8px;
+    /* Spacing if wrapped */
+}
+
+.queue-block:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.6);
 }
 
 .queue-block.failed {
@@ -366,6 +377,11 @@ body {
 }
 
 /* Monitor Section */
+.monitor-section {
+    margin-top: 40px;
+    /* Added gap */
+}
+
 .monitor-section h3 {
     margin-bottom: 16px;
     font-size: 1rem;
@@ -395,8 +411,11 @@ body {
 .m-value {
     font-family: 'JetBrains Mono';
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+    /* Reduced from 1.5rem */
     font-weight: 700;
+    word-break: break-all;
+    /* Ensure wrapping */
 }
 
 /* Algorith Details Box (New) */
@@ -452,4 +471,68 @@ body {
 ::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 4px;
+}
+
+/* Responsiveness */
+@media (max-width: 1024px) {
+    .app-layout {
+        flex-direction: column;
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .main-content {
+        height: auto;
+        overflow-y: visible;
+    }
+}
+
+@media (max-width: 768px) {
+    .monitor-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar-header h2 {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 20px;
+        /* Reduce padding on small screens */
+    }
+
+    .sidebar {
+        padding: 16px;
+    }
+
+    .config-group label {
+        font-size: 0.8rem;
+    }
+
+    .block-2d span {
+        font-size: 0.75rem;
+    }
+
+    .queue-block {
+        width: 70px;
+        height: 70px;
+        font-size: 0.8rem;
+    }
+
+    .content-header h2 {
+        font-size: 1.4rem;
+    }
 }
