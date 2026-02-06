@@ -542,7 +542,7 @@ body {
 /* Toast notifications */
 .toast-container {
     position: fixed;
-    top: 24px;
+    bottom: 24px;
     right: 24px;
     z-index: 9999;
     display: flex;
@@ -568,11 +568,7 @@ body {
 }
 
 .toast.toast--out {
-    animation: toast-out 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.toast--running {
-    border-left-color: var(--primary-blue);
+    animation: toast-out 0.25s ease-in forwards;
 }
 
 @keyframes toast-in {
@@ -587,16 +583,12 @@ body {
 }
 
 @keyframes toast-out {
-    0% {
+    from {
         opacity: 1;
-        transform: translateX(0) scale(1);
+        transform: translateX(0);
     }
-    50% {
-        opacity: 1;
-        transform: translateX(8%) scale(0.98);
-    }
-    100% {
+    to {
         opacity: 0;
-        transform: translateX(100%) scale(0.96);
+        transform: translateX(100%);
     }
 }
