@@ -4,6 +4,10 @@ let processQueue = [];
 let isAutoRunning = false;
 let autoRunInterval = null;
 let currentAlgorithm = 'first-fit';
+let configDirty = false;
+let resetAlertShown = false;
+
+
 
 // Constants
 const MEMORY_OFFSET = 0x0000; // Starting address offset
@@ -60,7 +64,25 @@ function setupEventListeners() {
         currentAlgorithm = e.target.value;
         updateAlgoInfo();
     });
+    [
+        els.totalMemoryIn,
+        els.memoryBlocksIn,
+        els.processSizesIn,
+        els.algorithmSelect
+    ].forEach(el => {
+        if (!el) return;
+        const markDirty = () => {
+            configDirty = true;
+            resetAlertShown = false; // allow alert again when config changes
+        };
+        el.addEventListener('change', markDirty);
+        // Also mark dirty on input (typing) for text/number fields so we detect changes before blur
+        if (el === els.algorithmSelect) return;
+        el.addEventListener('input', markDirty);
+    });
     // Initial call
+    enableCommaOnSpace(els.memoryBlocksIn);
+    enableCommaOnSpace(els.processSizesIn);
     updateAlgoInfo();
 }
 
@@ -85,10 +107,36 @@ function updateAlgoInfo() {
 function parseInputList(value) {
     return value.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x));
 }
+function showToast(message, durationMs = 4500) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    container.appendChild(toast);
+    const remove = () => {
+        toast.classList.add('toast--out');
+        toast.addEventListener('animationend', () => toast.remove());
+    };
+    const t = setTimeout(remove, durationMs);
+    toast.addEventListener('click', () => {
+        clearTimeout(t);
+        remove();
+    });
+}
+
+function showResetAlertOnce() {
+    if (!resetAlertShown) {
+        resetAlertShown = true;
+        showToast("Configuration has changed. Please click Reset to apply changes before running.");
+    }
+}
+
 
 function resetSimulation() {
     stopAutoRun();
-
+    configDirty = false;
+    resetAlertShown = false;
     // Safety check for inputs
     if (!els.memoryBlocksIn || !els.processSizesIn) return;
 
@@ -218,6 +266,11 @@ function updateStats() {
 
 // OS Logic
 function stepSimulation() {
+    if (configDirty && !resetAlertShown) {
+        showResetAlertOnce();
+        return;
+    }
+
     const processIndex = processQueue.findIndex(p => p.status === 'waiting');
     if (processIndex === -1) {
         setStatus("All processes handled.");
@@ -328,6 +381,10 @@ function compactMemory() {
 
 // Auto Run
 function toggleAutoRun() {
+    if (configDirty && !resetAlertShown) {
+        showResetAlertOnce();
+        return;
+    }   
     if (isAutoRunning) {
         stopAutoRun();
     } else {
@@ -349,6 +406,32 @@ function stopAutoRun() {
     els.btnAuto.textContent = "Auto Run";
     clearInterval(autoRunInterval);
 }
+function enableCommaOnSpace(inputEl) {
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+
+            const value = inputEl.value;
+            const cursorPos = inputEl.selectionStart;
+
+            // Don't insert comma at start or after another comma
+            if (
+                cursorPos === 0 ||
+                value[cursorPos - 1] === ',' ||
+                value[cursorPos - 1] === ' '
+            ) {
+                return;
+            }
+
+            const before = value.slice(0, cursorPos);
+            const after = value.slice(cursorPos);
+
+            inputEl.value = `${before}, ${after}`;
+            inputEl.selectionStart = inputEl.selectionEnd = cursorPos + 2;
+        }
+    });
+}
+
 
 // Start
 init();
