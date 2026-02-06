@@ -6,6 +6,7 @@ let autoRunInterval = null;
 let currentAlgorithm = 'first-fit';
 let configDirty = false;
 let resetAlertShown = false;
+let runningToastEl = null;
 
 
 
@@ -125,6 +126,33 @@ function showToast(message, durationMs = 4500) {
     });
 }
 
+function showRunningToast(message) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    dismissRunningToast();
+    const toast = document.createElement('div');
+    toast.className = 'toast toast--running';
+    toast.textContent = message;
+    container.appendChild(toast);
+    runningToastEl = toast;
+}
+
+function dismissRunningToast() {
+    if (runningToastEl && runningToastEl.parentNode) {
+        const el = runningToastEl;
+        runningToastEl = null;
+        el.classList.add('toast--out');
+        el.addEventListener('animationend', () => el.remove());
+    }
+}
+
+function showRunSummaryToast() {
+    const allocated = processQueue.filter(p => p.status === 'allocated').length;
+    const failed = processQueue.filter(p => p.status === 'failed').length;
+    const msg =`Run complete. Failed: ${failed}. Allocated: ${allocated}.`;
+    showToast(msg);
+}
+
 function showResetAlertOnce() {
     if (!resetAlertShown) {
         resetAlertShown = true;
@@ -135,6 +163,7 @@ function showResetAlertOnce() {
 
 function resetSimulation() {
     stopAutoRun();
+    dismissRunningToast();
     configDirty = false;
     resetAlertShown = false;
     // Safety check for inputs
@@ -274,11 +303,14 @@ function stepSimulation() {
     const processIndex = processQueue.findIndex(p => p.status === 'waiting');
     if (processIndex === -1) {
         setStatus("All processes handled.");
+        dismissRunningToast();
+        showRunSummaryToast();
         stopAutoRun();
         return;
     }
 
     const process = processQueue[processIndex];
+    showRunningToast(`Allocating P${process.id} (${process.size} KB)...`);
     setStatus(`Attempting to allocate Process P${process.id} (${process.size} KB)...`);
 
     let blockIndex = -1;
@@ -316,6 +348,12 @@ function stepSimulation() {
         process.status = 'failed';
         setStatus(`Allocation failed for P${process.id}. Try Compact Memory.`);
         render();
+    }
+
+    if (processQueue.every(p => p.status !== 'waiting')) {
+        dismissRunningToast();
+        showRunSummaryToast();
+        if (isAutoRunning) stopAutoRun();
     }
 }
 
