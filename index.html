@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS Memory Allocator Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar Configuration -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Configuration</h2>
+            </div>
+
+            <div class="config-group">
+                <label for="totalMemory">Total Memory Size (KB)</label>
+                <input type="number" id="totalMemory" value="1024" class="dark-input">
+            </div>
+
+            <div class="config-group">
+                <label for="memoryBlocks">Initial Block Sizes (comma separated)</label>
+                <input type="text" id="memoryBlocks" value="100, 200, 50, 300, 150" class="dark-input">
+                <small class="helper-text">Separate values with commas</small>
+            </div>
+
+            <div class="config-group">
+                <label for="processSizes">Process Queue (comma separated)</label>
+                <input type="text" id="processSizes" value="80, 250, 40, 120" class="dark-input">
+            </div>
+
+            <div class="config-group">
+                <label for="algorithm">Allocation Algorithm</label>
+                <div class="select-wrapper">
+                    <select id="algorithm" class="dark-input">
+                        <option value="first-fit">First Fit</option>
+                        <option value="best-fit">Best Fit</option>
+                        <option value="worst-fit">Worst Fit</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="action-grid">
+                <button id="btn-reset" class="btn btn-dark">Reset</button>
+                <button id="btn-compact" class="btn btn-warning">Compact Memory</button>
+                <button id="btn-step" class="btn btn-primary">Next Step</button>
+                <button id="btn-auto" class="btn btn-accent">Auto Run</button>
+            </div>
+
+            <div class="legend-panel">
+                <h3>MAP LEGEND</h3>
+                <div class="legend-item">
+                    <span class="dot free"></span>
+                    <div class="legend-info">
+                        <span class="l-title">Free Space</span>
+                        <span class="l-desc">Available memory</span>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <span class="dot allocated"></span>
+                    <div class="legend-info">
+                        <span class="l-title">Allocated</span>
+                        <span class="l-desc">Active Process</span>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <span class="dot fragment"></span>
+                    <div class="legend-info">
+                        <span class="l-title">Fragment</span>
+                        <span class="l-desc">Wasted space</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h2>Physical Memory Map (RAM)</h2>
+                <p id="status-text">System Ready. Memory Initialized.</p>
+            </header>
+
+            <!-- Memory Map Visualization -->
+            <section class="memory-map-section">
+                <!-- Flat 2D Container -->
+                <div class="memory-container-2d">
+                    <div id="memory-container" class="memory-track-2d">
+                        <!-- Blocks Injected Here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Process Queue -->
+            <section class="queue-section">
+                <h3>Process Scheduling Queue</h3>
+                <div id="process-queue" class="queue-container">
+                    <!-- Queue Items Injected Here -->
+                </div>
+            </section>
+
+            <!-- Algorithm Details & Stats -->
+            <section class="algo-details">
+                <h4 id="algo-title">Algorithm Details</h4>
+                <p id="algo-desc">Select an algorithm to see how it works.</p>
+            </section>
+
+            <!-- System Monitor -->
+            <section class="monitor-section">
+                <h3>System Monitor</h3>
+                <div class="monitor-grid">
+                    <div class="monitor-card">
+                        <span class="m-label">Memory Usage</span>
+                        <div id="stat-allocated" class="m-value">0 KB</div>
+                    </div>
+                    <div class="monitor-card">
+                        <span class="m-label">Fragmentation</span>
+                        <div id="stat-fragmentation" class="m-value">724 KB</div>
+                    </div>
+                    <div class="monitor-card">
+                        <span class="m-label">Processes</span>
+                        <div id="stat-processes" class="m-value">0 / 4</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

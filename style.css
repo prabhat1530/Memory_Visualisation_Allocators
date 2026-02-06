@@ -1,0 +1,455 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+    /* Colors */
+    --bg-dark: #0B0E14;
+    --bg-panel: #151922;
+    --bg-input: #0B0E14;
+
+    --text-primary: #EEF2FF;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+
+    --primary-blue: #3B82F6;
+    --accent-purple: #8B5CF6;
+    --success-green: #10B981;
+    --warning-orange: #F59E0B;
+    --danger-red: #EF4444;
+
+    --border-color: #2D3748;
+    --block-height: 120px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Layout */
+.app-layout {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    max-width: 1600px;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 320px;
+    background-color: var(--bg-panel);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.sidebar-header {
+    margin-bottom: 32px;
+}
+
+.sidebar-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+/* Config Groups */
+.config-group {
+    margin-bottom: 20px;
+}
+
+.config-group label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.dark-input {
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.dark-input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.helper-text {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+/* Action Buttons Grid */
+.action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+    margin-bottom: 32px;
+}
+
+.btn {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.btn:active {
+    transform: translateY(2px);
+}
+
+.btn-dark {
+    background-color: #1E293B;
+    color: #FFFFFF;
+    border: 1px solid var(--border-color);
+}
+
+.btn-warning {
+    background-color: var(--warning-orange);
+    color: #FFF;
+}
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    color: white;
+}
+
+.btn-accent {
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+    color: white;
+}
+
+/* Map Legend */
+.legend-panel {
+    background-color: #0F131A;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: auto;
+    border: 1px solid var(--border-color);
+}
+
+.legend-panel h3 {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.03);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 12px;
+}
+
+.dot.free {
+    background-color: var(--success-green);
+}
+
+.dot.allocated {
+    background-color: var(--primary-blue);
+}
+
+.dot.fragment {
+    background-color: var(--accent-purple);
+}
+
+.legend-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.l-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+}
+
+.l-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 40px;
+    background-color: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.content-header h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.content-header p {
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+}
+
+/* Memory Map Section - 2D */
+.memory-map-section {
+    margin-top: 40px;
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+}
+
+.memory-container-2d {
+    width: 100%;
+    background: #111827;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.memory-track-2d {
+    display: flex;
+    width: 100%;
+    height: var(--block-height);
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    overflow-x: auto;
+    /* Allow scrolling for minimum widths */
+    padding-bottom: 4px;
+    /* Space for scrollbar */
+}
+
+/* 2D Block */
+.block-2d {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.5s ease;
+    cursor: pointer;
+    position: relative;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    min-width: 60px;
+    /* Enforce visibility for small blocks */
+    flex-shrink: 0;
+    /* Prevent squishing below min-width */
+}
+
+.block-2d span {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.block-2d small {
+    font-family: 'JetBrains Mono';
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+/* Allocated Style */
+.block-2d.allocated {
+    background-color: var(--primary-blue);
+    color: white;
+}
+
+.block-2d.allocated:hover {
+    background-color: #2563EB;
+}
+
+/* Free Block Style - Minimal */
+.block-2d.free {
+    background-color: var(--success-green);
+    color: #064E3B;
+    /* Dark green text */
+    /* Diagonal stripe pattern for visual interest without 3D */
+    background-image: repeating-linear-gradient(45deg,
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.1) 10px,
+            transparent 10px,
+            transparent 20px);
+}
+
+.block-2d.free:hover {
+    filter: brightness(1.1);
+}
+
+/* Fragment Style */
+.block-2d.fragment {
+    background-color: var(--accent-purple);
+    color: white;
+}
+
+/* Queue Section */
+.queue-section {
+    margin-bottom: 40px;
+}
+
+.queue-section h3 {
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    font-size: 1rem;
+}
+
+.queue-container {
+    display: flex;
+    gap: 24px;
+    /* Increased gap */
+    flex-wrap: wrap;
+    /* Allow wrapping if too many items */
+}
+
+/* Flat Queue Item */
+.queue-block {
+    width: 80px;
+    height: 80px;
+    background-color: var(--primary-blue);
+    /* Matching Allocated Color */
+    border-radius: 4px;
+    /* Slightly squarer */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: 'JetBrains Mono';
+    font-weight: 700;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    /* Added depth */
+}
+
+.queue-block.failed {
+    background-color: var(--danger-red);
+}
+
+/* Monitor Section */
+.monitor-section h3 {
+    margin-bottom: 16px;
+    font-size: 1rem;
+}
+
+.monitor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    background: #0F131A;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.monitor-card {
+    text-align: left;
+}
+
+.m-label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.m-value {
+    font-family: 'JetBrains Mono';
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Algorith Details Box (New) */
+.algo-details {
+    background: #111827;
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+.algo-details h4 {
+    margin-bottom: 8px;
+    color: white;
+}
+
+.algo-details p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Tooltip */
+/* Tooltip logic is handled via 'title' attribute or can be enhanced with JS libraries if needed */
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.anim-new {
+    animation: slideIn 0.4s ease-out;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
