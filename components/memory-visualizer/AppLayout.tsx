@@ -117,7 +117,13 @@ export function AppLayout({
             />
           </section>
 
-          {isPaging && <PageTable pageTable={pageTable} />}
+          {isPaging && (
+            <PageTable
+              pageTable={pageTable}
+              strategy={algorithm}
+              totalFrames={memoryBlocks.length}
+            />
+          )}
 
           <ProcessQueueSection
             processQueue={processQueue}

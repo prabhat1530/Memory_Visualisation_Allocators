@@ -25,9 +25,24 @@ export function MemoryBlockComponent({
     !block.isAllocated && block.size < 50 ? ' fragment' : '';
   const deallocatingClass = block.isDeallocating ? ' deallocating' : '';
   const animNewClass = block.isNew ? ' anim-new' : '';
-  const className = `block-2d ${typeClass}${fragmentClass}${deallocatingClass}${animNewClass}`;
+
+  const hasPartialPage =
+    block.isAllocated &&
+    block.requestedSize != null &&
+    block.requestedSize < block.size;
+
+  const partialClass = hasPartialPage ? ' partial-page' : '';
+  const className = `block-2d ${typeClass}${fragmentClass}${deallocatingClass}${animNewClass}${partialClass}`;
+
+  const waste = hasPartialPage ? block.size - block.requestedSize! : 0;
+  const usedPct = hasPartialPage
+    ? Math.round((block.requestedSize! / block.size) * 100)
+    : 100;
 
   let tooltip = `Status: ${block.isAllocated ? 'Allocated' : 'Free'}\nAddress: ${toHex(address)} - ${toHex(address + block.size - 1)}\nSize: ${block.size}KB`;
+  if (hasPartialPage) {
+    tooltip += `\nUsed: ${block.requestedSize}KB / ${block.size}KB\nInternal Fragmentation: ${waste}KB wasted`;
+  }
   if (block.isAllocated && processInfo?.allocatedAt) {
     const elapsed = Date.now() - processInfo.allocatedAt;
     const remaining = Math.max(0, processInfo.lifetime - elapsed);
@@ -41,12 +56,24 @@ export function MemoryBlockComponent({
   }, [block.isAllocated, onDeallocate]);
 
   const label = block.isAllocated ? `P-${block.processId}` : `${block.size}KB`;
-  const subLabel = block.isAllocated ? `${block.size}KB` : 'Free';
+  const subLabel = block.isAllocated
+    ? hasPartialPage
+      ? `${block.requestedSize}/${block.size}KB`
+      : `${block.size}KB`
+    : 'Free';
+
+  const inlineStyle: React.CSSProperties = {
+    width: `calc(${widthPct}% - 4px)`,
+  };
+
+  if (hasPartialPage) {
+    inlineStyle.background = `linear-gradient(to right, var(--primary-blue) ${usedPct}%, var(--accent-purple) ${usedPct}%)`;
+  }
 
   return (
     <div
       className={className}
-      style={{ width: `calc(${widthPct}% - 4px)` }}
+      style={inlineStyle}
       title={tooltip}
       onClick={handleClick}
       role={block.isAllocated ? 'button' : undefined}

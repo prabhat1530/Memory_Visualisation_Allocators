@@ -212,29 +212,15 @@ export function useMemorySimulation(showToast: (msg: string) => void) {
   );
 
   const retryFailedProcesses = useCallback(() => {
-    if (isPausedRef.current || isRetrying) return;
-    setIsRetrying(true);
-    const blocks = memoryBlocksRef.current;
+    if (isPausedRef.current) return;
     const queue = processQueueRef.current;
-    const algo = algorithmRef.current;
     const failed = queue.filter((p) => p.status === 'failed');
-    if (failed.length === 0) { setIsRetrying(false); return; }
-    const process = failed[0];
-    const blockIndex = findBlockForProcess(blocks, process.size, algo);
-    if (blockIndex === -1) { setIsRetrying(false); return; }
-    const processIndex = queue.findIndex((p) => p.id === process.id);
-    if (processIndex === -1) { setIsRetrying(false); return; }
-    setStatus(`Memory available! Retrying Process P${process.id}...`);
-    setProcessQueue((q) =>
-      q.map((p) => (p.id === process.id ? { ...p, status: 'waiting' as const } : p))
-    );
+    if (failed.length === 0) return;
     if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
     retryTimeoutRef.current = setTimeout(() => {
-      allocateRef.current(blockIndex, processIndex);
-      setIsRetrying(false);
-      retryTimeoutRef.current = setTimeout(() => retryFailedProcesses(), 500);
+      stepSimulationRef.current();
     }, 300);
-  }, [isRetrying]);
+  }, []);
 
   retryFailedProcessesRef.current = retryFailedProcesses;
 
@@ -534,20 +520,28 @@ export function useMemorySimulation(showToast: (msg: string) => void) {
           if (hasWaiting) {
             stepSimulationRef.current();
           } else if (hasFailed && hasAllocated) {
-            /* wait for deallocation */
+            /* wait for deallocation to free memory */
+          } else if (hasFailed && !hasAllocated) {
+            const blocks = memoryBlocksRef.current;
+            const totalFree = blocks.reduce((s, b) => (!b.isAllocated ? s + b.size : s), 0);
+            const smallestFailed = q
+              .filter((p) => p.status === 'failed')
+              .reduce((min, p) => Math.min(min, p.size), Infinity);
+            if (totalFree >= smallestFailed) {
+              stepSimulationRef.current();
+            } else {
+              setIsAutoRunning(false);
+              if (autoRunIntervalRef.current) { clearInterval(autoRunIntervalRef.current); autoRunIntervalRef.current = null; }
+              stopDeallocationChecker();
+              setStatus('Some processes could not be allocated. Not enough total memory.');
+            }
           } else {
-            const allDone = q.every(
-              (p) => p.status === 'completed' || (p.status === 'failed' && !hasAllocated)
-            );
+            const allDone = q.every((p) => p.status === 'completed');
             if (allDone) {
               setIsAutoRunning(false);
               if (autoRunIntervalRef.current) { clearInterval(autoRunIntervalRef.current); autoRunIntervalRef.current = null; }
               stopDeallocationChecker();
-              setStatus(
-                hasFailed
-                  ? 'All processes completed or failed. Some processes could not be allocated.'
-                  : 'All processes completed. Simulation finished.'
-              );
+              setStatus('All processes completed. Simulation finished.');
             }
           }
           return q;

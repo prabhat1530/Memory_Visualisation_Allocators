@@ -1,4 +1,4 @@
-export type ProcessStatus = 'waiting' | 'allocated' | 'failed' | 'terminated' | 'completed';
+export type ProcessStatus = 'waiting' | 'loading' | 'allocated' | 'failed' | 'terminated' | 'completed';
 
 export type StrategyType =
   | 'first-fit' | 'best-fit' | 'worst-fit'

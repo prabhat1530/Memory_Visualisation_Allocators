@@ -39,7 +39,7 @@ export function usePagingSimulation(
   const [compactionMode, setCompactionMode] = useState<CompactionMode>('manual');
   const [allocationFailures, setAllocationFailures] = useState(0);
   const [pageFaults, setPageFaults] = useState(0);
-  const [totalAllocations, setTotalAllocations] = useState(0);
+  const [totalPageLoads, setTotalPageLoads] = useState(0);
   const initialMount = useRef(true);
 
   const autoRunIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -49,13 +49,14 @@ export function usePagingSimulation(
   const processQueueRef = useRef<Process[]>([]);
   const isPausedRef = useRef(false);
   const stepSimulationRef = useRef<() => void>(() => {});
+  const pageProgressRef = useRef<Record<number, number>>({});
 
   framesRef.current = frames;
   pageTableRef.current = pageTable;
   processQueueRef.current = processQueue;
   isPausedRef.current = isPaused;
 
-  const isThrashing = totalAllocations > 0 && (pageFaults / totalAllocations) > THRASHING_THRESHOLD;
+  const isThrashing = totalPageLoads > 0 && (pageFaults / totalPageLoads) > THRASHING_THRESHOLD;
 
   const setAlgorithm = useCallback((_val: StrategyType) => { setConfigDirty(true); setResetAlertShown(false); }, []);
 
@@ -85,6 +86,9 @@ export function usePagingSimulation(
           setProcessQueue((q) =>
             q.map((p) => p.id === pid ? { ...p, status: 'completed' as const, allocatedAt: null } : p)
           );
+          processQueueRef.current = processQueueRef.current.map((p) =>
+            p.id === pid ? { ...p, status: 'completed' as const, allocatedAt: null } : p
+          );
           setStatus(`Process P${pid} completed. Frames released.`);
           break;
         }
@@ -98,24 +102,29 @@ export function usePagingSimulation(
       setResetAlertShown(true);
       return;
     }
+
     const queue = processQueueRef.current;
-    let processIndex = queue.findIndex((p) => p.status === 'waiting');
-    if (processIndex === -1) {
-      processIndex = queue.findIndex((p) => p.status === 'failed');
-      if (processIndex !== -1) {
-        setProcessQueue((q) => q.map((p, i) => i === processIndex ? { ...p, status: 'waiting' as const } : p));
-      }
+
+    let process: Process | undefined;
+    let isNewProcess = false;
+
+    process = queue.find((p) => p.status === 'loading');
+
+    if (!process) {
+      process = queue.find((p) => p.status === 'waiting');
+      if (process) isNewProcess = true;
     }
-    if (processIndex === -1) {
+
+    if (!process) {
+      process = queue.find((p) => p.status === 'failed');
+      if (process) isNewProcess = true;
+    }
+
+    if (!process) {
       const hasAllocated = queue.some((p) => p.status === 'allocated');
-      const hasFailed = queue.some((p) => p.status === 'failed');
-      if (hasAllocated) {
-        setStatus('All allocated. Waiting for completion...');
-      } else if (hasFailed) {
-        setStatus('All processes failed. Reset or wait.');
-        setIsAutoRunning(false);
-        if (autoRunIntervalRef.current) { clearInterval(autoRunIntervalRef.current); autoRunIntervalRef.current = null; }
-        stopDeallocationChecker();
+      const hasLoading = queue.some((p) => p.status === 'loading');
+      if (hasAllocated || hasLoading) {
+        setStatus('All processes being handled. Waiting for completion...');
       } else {
         setStatus('All processes completed.');
         setIsAutoRunning(false);
@@ -124,78 +133,140 @@ export function usePagingSimulation(
       }
       return;
     }
-    const process = queue[processIndex];
-    processQueueRef.current = queue.map((p, i) =>
-      i === processIndex ? { ...p, status: 'allocated' as const, allocatedAt: Date.now(), blockIndex: -1 } : p
-    );
 
-    setTotalAllocations((c) => c + 1);
+    const pid = process.id;
     const pagesNeeded = Math.ceil(process.size / pageSizeState);
-    const currentFrames = [...framesRef.current];
-    const currentPT = [...pageTableRef.current];
-    let faultsThisAlloc = 0;
 
-    for (let page = 0; page < pagesNeeded; page++) {
-      let freeFrameIdx = currentFrames.findIndex((f) => !f.isAllocated);
-
-      if (freeFrameIdx === -1) {
-        faultsThisAlloc++;
-        // Page replacement
-        const processEntries = currentPT.filter((e) => {
-          const proc = processQueueRef.current.find((p) => p.id === e.processId);
-          return proc && proc.status === 'allocated';
-        });
-        if (processEntries.length === 0) break;
-
-        let evictEntry: PageTableEntry;
-        if (strategyProp === 'paging-fifo') {
-          evictEntry = processEntries.reduce((oldest, e) => e.loadedAt < oldest.loadedAt ? e : oldest);
-        } else {
-          evictEntry = processEntries.reduce((lru, e) => e.lastAccessedAt < lru.lastAccessedAt ? e : lru);
-        }
-        freeFrameIdx = evictEntry.frameIndex;
-        currentFrames[freeFrameIdx] = {
-          ...currentFrames[freeFrameIdx],
-          isAllocated: false,
-          processId: null,
-          requestedSize: undefined,
-          isNew: true,
-        };
-        const evictIdx = currentPT.findIndex(
-          (e) => e.processId === evictEntry.processId && e.pageIndex === evictEntry.pageIndex && e.frameIndex === evictEntry.frameIndex
-        );
-        if (evictIdx !== -1) currentPT.splice(evictIdx, 1);
-      }
-
-      const now = Date.now();
-      currentFrames[freeFrameIdx] = {
-        ...currentFrames[freeFrameIdx],
-        isAllocated: true,
-        processId: process.id,
-        requestedSize: pageSizeState,
-        isNew: true,
-      };
-      currentPT.push({
-        processId: process.id,
-        pageIndex: page,
-        frameIndex: freeFrameIdx,
-        loadedAt: now,
-        lastAccessedAt: now,
-      });
+    if (isNewProcess) {
+      pageProgressRef.current[pid] = 0;
+      processQueueRef.current = queue.map((p) =>
+        p.id === pid ? { ...p, status: 'loading' as const } : p
+      );
+      setProcessQueue([...processQueueRef.current]);
     }
 
-    if (faultsThisAlloc > 0) setPageFaults((c) => c + faultsThisAlloc);
+    const currentPage = pageProgressRef.current[pid] ?? 0;
+
+    const currentFrames = [...framesRef.current];
+    const currentPT = [...pageTableRef.current];
+
+    const existingEntry = currentPT.find(
+      (e) => e.processId === pid && e.pageIndex === currentPage
+    );
+    if (existingEntry) {
+      existingEntry.lastAccessedAt = Date.now();
+      pageProgressRef.current[pid] = currentPage + 1;
+
+      setPageTable([...currentPT]);
+      framesRef.current = currentFrames;
+      pageTableRef.current = currentPT;
+
+      if (currentPage + 1 >= pagesNeeded) {
+        processQueueRef.current = processQueueRef.current.map((p) =>
+          p.id === pid ? { ...p, status: 'allocated' as const, allocatedAt: Date.now() } : p
+        );
+        setProcessQueue([...processQueueRef.current]);
+        setStatus(`P${pid} Page ${currentPage}: Hit (already in F${existingEntry.frameIndex}). All ${pagesNeeded} pages loaded — P${pid} running.`);
+      } else {
+        setStatus(`P${pid} Page ${currentPage}: Hit (already in F${existingEntry.frameIndex}). ${currentPage + 1}/${pagesNeeded} pages loaded.`);
+      }
+      return;
+    }
+
+    let freeFrameIdx = currentFrames.findIndex((f) => !f.isAllocated);
+    let evictionMsg = '';
+    let hadFault = false;
+
+    if (freeFrameIdx === -1) {
+      hadFault = true;
+
+      if (currentPT.length === 0) {
+        processQueueRef.current = processQueueRef.current.map((p) =>
+          p.id === pid ? { ...p, status: 'failed' as const } : p
+        );
+        setProcessQueue([...processQueueRef.current]);
+        setAllocationFailures((c) => c + 1);
+        setPageFaults((c) => c + 1);
+        setStatus(`PAGE FAULT — P${pid} Page ${currentPage}: No pages in memory to evict. P${pid} blocked.`);
+        return;
+      }
+
+      let evictEntry: PageTableEntry;
+      let reason: string;
+
+      if (strategyProp === 'paging-fifo') {
+        evictEntry = currentPT.reduce((oldest, e) => e.loadedAt < oldest.loadedAt ? e : oldest);
+        reason = 'FIFO — oldest loaded page';
+      } else {
+        evictEntry = currentPT.reduce((lru, e) => e.lastAccessedAt < lru.lastAccessedAt ? e : lru);
+        reason = 'LRU — least recently used page';
+      }
+
+      freeFrameIdx = evictEntry.frameIndex;
+      const isSelfEvict = evictEntry.processId === pid;
+
+      currentFrames[freeFrameIdx] = {
+        ...currentFrames[freeFrameIdx],
+        isAllocated: false,
+        processId: null,
+        requestedSize: undefined,
+        isNew: true,
+      };
+
+      const evictIdx = currentPT.findIndex(
+        (e) => e.processId === evictEntry.processId && e.pageIndex === evictEntry.pageIndex && e.frameIndex === evictEntry.frameIndex
+      );
+      if (evictIdx !== -1) currentPT.splice(evictIdx, 1);
+
+      evictionMsg = isSelfEvict
+        ? `PAGE FAULT! Evicted own Page ${evictEntry.pageIndex} from F${freeFrameIdx} (${reason}). `
+        : `PAGE FAULT! Evicted P${evictEntry.processId} Page ${evictEntry.pageIndex} from F${freeFrameIdx} (${reason}). `;
+    }
+
+    const now = Date.now();
+    const isLastPage = currentPage === pagesNeeded - 1;
+    const usedInFrame = isLastPage
+      ? process.size - currentPage * pageSizeState
+      : pageSizeState;
+
+    currentFrames[freeFrameIdx] = {
+      ...currentFrames[freeFrameIdx],
+      isAllocated: true,
+      processId: pid,
+      requestedSize: usedInFrame,
+      isNew: true,
+    };
+
+    currentPT.push({
+      processId: pid,
+      pageIndex: currentPage,
+      frameIndex: freeFrameIdx,
+      loadedAt: now,
+      lastAccessedAt: now,
+    });
+
+    pageProgressRef.current[pid] = currentPage + 1;
 
     setFrames(currentFrames);
-    setPageTable(currentPT);
-    setProcessQueue((q) =>
-      q.map((p, i) => i === processIndex ? { ...p, status: 'allocated' as const, allocatedAt: Date.now() } : p)
-    );
-    setStatus(
-      faultsThisAlloc > 0
-        ? `P${process.id} allocated (${pagesNeeded} pages, ${faultsThisAlloc} page faults).`
-        : `P${process.id} allocated (${pagesNeeded} pages). Running...`
-    );
+    framesRef.current = currentFrames;
+    setPageTable([...currentPT]);
+    pageTableRef.current = currentPT;
+    setTotalPageLoads((c) => c + 1);
+    if (hadFault) setPageFaults((c) => c + 1);
+
+    if (isLastPage) {
+      processQueueRef.current = processQueueRef.current.map((p) =>
+        p.id === pid ? { ...p, status: 'allocated' as const, allocatedAt: Date.now() } : p
+      );
+      setProcessQueue([...processQueueRef.current]);
+      setStatus(
+        `${evictionMsg}P${pid} Page ${currentPage} → F${freeFrameIdx}. All ${pagesNeeded} pages loaded — P${pid} running.`
+      );
+    } else {
+      setStatus(
+        `${evictionMsg}P${pid} Page ${currentPage} → F${freeFrameIdx} (${currentPage + 1}/${pagesNeeded} pages loaded)`
+      );
+    }
   }, [configDirty, resetAlertShown, showToast, stopDeallocationChecker, pageSizeState, strategyProp]);
 
   stepSimulationRef.current = stepSimulation;
@@ -210,7 +281,8 @@ export function usePagingSimulation(
     setResetAlertShown(false);
     setAllocationFailures(0);
     setPageFaults(0);
-    setTotalAllocations(0);
+    setTotalPageLoads(0);
+    pageProgressRef.current = {};
 
     const tm = overrides?.totalMemory ?? totalMemory;
     const pss = overrides?.processSizesStr ?? processSizesStr;
@@ -233,7 +305,9 @@ export function usePagingSimulation(
     setPageTable([]);
     pageTableRef.current = [];
     const processSizesList = parseInputList(pss);
-    setProcessQueue(processSizesList.map((size, i) => createProcess(i + 1, size)));
+    const newQueue = processSizesList.map((size, i) => createProcess(i + 1, size));
+    setProcessQueue(newQueue);
+    processQueueRef.current = newQueue;
     setStatus(`Paging initialized. ${numFrames} frames of ${ps} KB each.`);
     setStopButtonLabel('Stop');
     setStopButtonVariant('primary');
@@ -286,27 +360,42 @@ export function usePagingSimulation(
       autoRunIntervalRef.current = setInterval(() => {
         if (isPausedRef.current) return;
         setProcessQueue((q) => {
+          const hasLoading = q.some((p) => p.status === 'loading');
           const hasWaiting = q.some((p) => p.status === 'waiting');
           const hasFailed = q.some((p) => p.status === 'failed');
           const hasAllocated = q.some((p) => p.status === 'allocated');
-          if (hasWaiting) {
+
+          if (hasLoading || hasWaiting) {
             stepSimulationRef.current();
           } else if (hasFailed && hasAllocated) {
-            /* wait */
+            /* wait for deallocation to free frames — then retry */
+          } else if (hasFailed && !hasAllocated) {
+            const freeFrames = framesRef.current.filter((f) => !f.isAllocated).length;
+            const smallestFailedPages = q
+              .filter((p) => p.status === 'failed')
+              .reduce((min, p) => Math.min(min, Math.ceil(p.size / pageSizeState)), Infinity);
+            if (freeFrames >= smallestFailedPages) {
+              stepSimulationRef.current();
+            } else {
+              setIsAutoRunning(false);
+              if (autoRunIntervalRef.current) { clearInterval(autoRunIntervalRef.current); autoRunIntervalRef.current = null; }
+              stopDeallocationChecker();
+              setStatus('Some processes could not be allocated. Not enough frames.');
+            }
           } else {
-            const allDone = q.every((p) => p.status === 'completed' || (p.status === 'failed' && !hasAllocated));
+            const allDone = q.every((p) => p.status === 'completed');
             if (allDone) {
               setIsAutoRunning(false);
               if (autoRunIntervalRef.current) { clearInterval(autoRunIntervalRef.current); autoRunIntervalRef.current = null; }
               stopDeallocationChecker();
-              setStatus(hasFailed ? 'Some processes failed.' : 'All processes completed.');
+              setStatus('All processes completed.');
             }
           }
           return q;
         });
       }, AUTO_RUN_INTERVAL_MS);
     }
-  }, [configDirty, resetAlertShown, isPaused, isAutoRunning, showToast, startDeallocationChecker, stopDeallocationChecker, stepSimulation]);
+  }, [configDirty, resetAlertShown, isPaused, isAutoRunning, showToast, startDeallocationChecker, stopDeallocationChecker, pageSizeState]);
 
   const togglePause = useCallback(() => {
     if (isPaused) {
@@ -348,7 +437,7 @@ export function usePagingSimulation(
       if (!frame || !frame.isAllocated || !frame.processId) return;
       const pid = frame.processId;
       setFrames((f) =>
-        f.map((fr, i) =>
+        f.map((fr) =>
           fr.processId === pid
             ? { ...fr, isAllocated: false, processId: null, requestedSize: undefined, isNew: true }
             : fr
@@ -357,6 +446,9 @@ export function usePagingSimulation(
       setPageTable((pt) => pt.filter((e) => e.processId !== pid));
       setProcessQueue((q) =>
         q.map((p) => p.id === pid ? { ...p, status: 'terminated' as const, allocatedAt: null } : p)
+      );
+      processQueueRef.current = processQueueRef.current.map((p) =>
+        p.id === pid ? { ...p, status: 'terminated' as const, allocatedAt: null } : p
       );
       setStatus(`Process P${pid} deallocated. Frames released.`);
     },
@@ -377,7 +469,12 @@ export function usePagingSimulation(
     const total = frames.length * pageSizeState;
     const allocated = frames.filter((f) => f.isAllocated).length * pageSizeState;
     const free = total - allocated;
+    const intFrag = frames.reduce((acc, f) => {
+      if (f.isAllocated && f.requestedSize != null) return acc + (f.size - f.requestedSize);
+      return acc;
+    }, 0);
     const allocatedCount = processQueue.filter((p) => p.status === 'allocated').length;
+    const loadingCount = processQueue.filter((p) => p.status === 'loading').length;
     const completedCount = processQueue.filter((p) => p.status === 'completed').length;
     const activeCount = processQueue.filter((p) => p.status !== 'completed').length;
     return {
@@ -385,12 +482,12 @@ export function usePagingSimulation(
       freeKB: free,
       totalKB: total,
       utilizationPct: total > 0 ? Math.round((allocated / total) * 100) : 0,
-      internalFragmentation: 0,
+      internalFragmentation: intFrag,
       externalFragmentation: 0,
       largestFreeBlock: free,
       allocationFailures,
       compactionCount: 0,
-      processesText: `${allocatedCount} / ${activeCount} (${completedCount} done)`,
+      processesText: `${allocatedCount} running, ${loadingCount} loading / ${activeCount} active (${completedCount} done)`,
       pageFaults,
       isThrashing,
     };

@@ -326,14 +326,28 @@ export function useBuddySimulation(showToast: (msg: string) => void) {
           if (hasWaiting) {
             stepSimulationRef.current();
           } else if (hasFailed && hasAllocated) {
-            /* wait */
+            /* wait for deallocation to free memory */
+          } else if (hasFailed && !hasAllocated) {
+            const blocks = flattenBuddyTree(buddyRootRef.current!);
+            const totalFree = blocks.reduce((s, b) => (!b.isAllocated ? s + b.size : s), 0);
+            const smallestFailed = q
+              .filter((p) => p.status === 'failed')
+              .reduce((min, p) => Math.min(min, p.size), Infinity);
+            if (totalFree >= smallestFailed) {
+              stepSimulationRef.current();
+            } else {
+              setIsAutoRunning(false);
+              if (autoRunIntervalRef.current) { clearInterval(autoRunIntervalRef.current); autoRunIntervalRef.current = null; }
+              stopDeallocationChecker();
+              setStatus('Some processes could not be allocated. Not enough memory.');
+            }
           } else {
-            const allDone = q.every((p) => p.status === 'completed' || (p.status === 'failed' && !hasAllocated));
+            const allDone = q.every((p) => p.status === 'completed');
             if (allDone) {
               setIsAutoRunning(false);
               if (autoRunIntervalRef.current) { clearInterval(autoRunIntervalRef.current); autoRunIntervalRef.current = null; }
               stopDeallocationChecker();
-              setStatus(hasFailed ? 'Some processes failed.' : 'All processes completed.');
+              setStatus('All processes completed.');
             }
           }
           return q;

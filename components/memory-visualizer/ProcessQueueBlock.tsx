@@ -9,6 +9,7 @@ interface ProcessQueueBlockProps {
 
 export function ProcessQueueBlock({ process, totalFreeKB }: ProcessQueueBlockProps) {
   const isAllocated = process.status === 'allocated';
+  const isLoading = process.status === 'loading';
   const isTerminated = process.status === 'terminated';
   const isFailed = process.status === 'failed';
 
@@ -48,6 +49,31 @@ export function ProcessQueueBlock({ process, totalFreeKB }: ProcessQueueBlockPro
         </div>
       );
     }
+  } else if (isLoading) {
+    className += ' loading-process';
+    style = {
+      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+      position: 'relative',
+      overflow: 'hidden',
+    };
+    title = `Process P${process.id} loading pages into memory...\nSize: ${process.size} KB`;
+    const pulseBarStyle: React.CSSProperties = {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      width: '100%',
+      height: '3px',
+      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)',
+      animation: 'loading-shimmer 1.5s ease-in-out infinite',
+      zIndex: 1,
+    };
+    return (
+      <div className={className} style={style} title={title}>
+        <div style={pulseBarStyle} aria-hidden />
+        <span style={{ position: 'relative', zIndex: 2 }}>P{process.id}</span>
+        <small style={{ position: 'relative', zIndex: 2 }}>Loading...</small>
+      </div>
+    );
   } else if (isTerminated) {
     className += ' terminated-process';
     style = {

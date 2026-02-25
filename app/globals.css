@@ -323,6 +323,16 @@ body {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
 }
 
+.block-2d.partial-page {
+  color: white;
+  border: 1px solid rgba(139, 92, 246, 0.5);
+}
+
+.block-2d.partial-page:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
 .block-2d.deallocating {
   animation: deallocate 0.4s ease-out;
 }
@@ -433,6 +443,20 @@ body {
     box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
     opacity: 1;
   }
+}
+
+@keyframes loading-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.queue-block.loading-process {
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
 }
 
 .monitor-section {
@@ -736,9 +760,32 @@ body {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.page-table-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .page-table-status--mapped {
   color: var(--success-green);
-  font-weight: 600;
+}
+
+.page-table-status--evict {
+  color: var(--danger-red);
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.page-table-evict-candidate {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+.page-table-order {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
 }
 
 /* Select optgroup styling for dark theme */
