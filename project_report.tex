@@ -1,0 +1,96 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+
+\begin{document}
+
+\title{OS Memory Allocator Visualizer: A Comprehensive Simulation and Educational Tool}
+
+\author{
+\IEEEauthorblockN{Aryan Jandge}
+\IEEEauthorblockA{\textit{Roll No. 230084} \\
+}
+\and
+\IEEEauthorblockN{Prabhat Kumar}
+\IEEEauthorblockA{\textit{Roll No. 230130} \\
+}
+\and
+\IEEEauthorblockN{Mahendra Parihar}
+\IEEEauthorblockA{\textit{ } \\
+}
+}
+
+\maketitle
+
+\begin{abstract}
+Memory management is a fundamental component of modern operating systems, responsible for dynamically allocating and deallocating memory spaces to programs in execution. Understanding the intricacies of contiguous memory allocation, paging, and localized allocation systems like the Buddy System is crucial for students and practitioners of computer science. This report presents the design and implementation of the OS Memory Allocator Visualizer, a web-based educational tool built using Next.js. The application provides real-time, interactive visualizations of various memory allocation algorithms, including First-Fit, Best-Fit, Worst-Fit, Paging (with FIFO and LRU replacements), and the Buddy System. The objective of this project is to bridge the conceptual gap in operating system memory management by offering a clear, visual, and highly interactive simulation environment.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Memory Allocation, Operating Systems, Simulation, Paging, Buddy System, First-Fit, Best-Fit, Worst-Fit
+\end{IEEEkeywords}
+
+\section{Introduction}
+Operating systems (OS) employ a variety of memory management techniques to optimize the use of primary memory, minimize fragmentation, and ensure efficient process execution. Due to the abstract nature of these algorithms, demonstrating their dynamic behavior and edge cases—such as external fragmentation and page thrashing—can be challenging. 
+
+The OS Memory Allocator Visualizer was developed to resolve this educational challenge. It is a production-grade, Next.js-based web application designed to simulate various memory allocation strategies seamlessly on the client side. By employing React hooks for state management and functional components for the UI, the visualizer allows users to interact with memory blocks, queue processes, and observe the internal state of the OS memory manager in real-time.
+
+\section{System Architecture}
+The visualizer is architected using the modern Next.js 14+ App Router paradigm. The architecture prioritizes performance, reactivity, and a clean separation of concerns.
+
+\subsection{Core Components}
+\begin{itemize}
+    \item \textbf{App Router:} The application utilizes a single route (\texttt{/}) where both layout and page structures are defined.
+    \item \textbf{State Management:} The simulation logic is entirely encapsulated within custom React hooks (e.g., \texttt{useMemorySimulation}, \texttt{usePagingSimulation}, \texttt{useBuddySimulation}). These hooks manage simulation timers, memory blocks, process queues, and statistics.
+    \item \textbf{UI Components:} Feature-based React components under \texttt{components/memory-visualizer/} form the interface. This includes the \texttt{MemoryMap}, \texttt{ProcessQueueSection}, and \texttt{SystemMonitor}. The architecture completely avoids direct DOM manipulation, relying entirely on React state paradigms.
+\end{itemize}
+
+\subsection{User Interface Tweaks and UX}
+To provide a smooth visual experience, the application includes subtle UX polish:
+\begin{itemize}
+    \item Fade-in transitions for page layouts.
+    \item Smooth block and queue transitions.
+    \item Interactive hover states on the legend and monitor cards.
+\end{itemize}
+
+\section{Methodology and Implemented Algorithms}
+The project simulates three distinct paradigms of memory allocation:
+
+\subsection{Contiguous Memory Allocation}
+In this mode, memory is viewed as a large contiguous array. The OS allocates single, contiguous blocks of memory for processes as they arrive.
+\begin{enumerate}
+    \item \textbf{First-Fit:} Allocates the first free memory block that is large enough for the process. This method is fast but can cause significant external fragmentation.
+    \item \textbf{Best-Fit:} Searches the entire memory to find the smallest free block that is sufficiently large. It minimizes wasted space in the target block but tends to leave very small, unusable fragments.
+    \item \textbf{Worst-Fit:} Allocates the largest available free block. The logic is that the remaining space will be large enough to be useful for subsequent processes.
+\end{enumerate}
+For contiguous allocation, the simulator also includes a \textit{Compaction} feature (both manual and automatic), which simulates the OS shifting processes to consolidate fragmented free memory into a single contiguous block.
+
+\subsection{Paging Allocation}
+To address external fragmentation natively, the system simulates Paging. Physical memory is divided into fixed-size \textit{frames}, and logical space is divided into equal-sized \textit{pages}. The simulator uses a dynamically updated Page Table.
+If a process requires frames and no free frames are available, the system invokes page replacement algorithms:
+\begin{itemize}
+    \item \textbf{FIFO (First-In-First-Out):} Replaces the oldest loaded page.
+    \item \textbf{LRU (Least Recently Used):} Replaces the page that has not been accessed for the longest time.
+\end{itemize}
+The page visualizer effectively demonstrates page faults and even highlights the \textit{thrashing} state when page fault rates exceed predefined thresholds.
+
+\subsection{Buddy System}
+The Buddy System is a memory allocation and management algorithm that manages memory in power-of-two increments. When a request for memory is made, the system rounds up the size to the nearest power of two. If no suitable block is available, it splits a larger block into two \textit{buddies} until the required size is reached. Conversely, when memory is freed, the system recursively checks if a block's buddy is also free, and if so, coalesces them to form a larger block. The visualizer explicitly maps out the tree structure of the buddy splits and visualizes the merging process in real time.
+
+\section{System Simulation and Feedback Mechanisms}
+The simulation engine is robust and offers robust feedback to the user:
+\begin{itemize}
+    \item \textbf{Auto Run vs. Stepping:} Users can step through allocations manually or enable an auto-run mode that processes the queue at specified intervals.
+    \item \textbf{Real-Time Statistics:} The \texttt{SystemMonitor} displays critical metrics including memory utilization percentages, internal/external fragmentation sizes, allocation failures, and page fault counts.
+    \item \textbf{Process Lifecycles:} Processes simulate realistic lifecycles with predefined execution times, dynamic allocations, and automatic or manual deallocations.
+\end{itemize}
+
+\section{Conclusion}
+The OS Memory Allocator Visualizer successfully implements a highly robust and visually appealing interactive simulation of core operating system functionality. By developing this using Next.js, the team ensured the application is performant, scalable, and easy to maintain. The real-time visual manifestation of complex concepts such as fragmentation, paging thrashing, and buddy coalescing proves to be a powerful educational tool for computing students and professionals alike.
+
+\end{document}
